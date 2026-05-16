@@ -1,0 +1,3 @@
+# Sin dependencias externas: solo stdlib de Python 3.8+
+# (urllib, json, html, concurrent.futures, http.server).
+# Asi el cron corre con cualquier python3 sin venv ni pip install.

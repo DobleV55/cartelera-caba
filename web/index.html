@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cartelera CABA — Cine en Capital Federal</title>
+<style>
+  :root{
+    --bg:#0e0f13; --surf:#181a21; --surf2:#21242e; --line:#2c3040;
+    --txt:#e8eaf0; --dim:#9aa0b4; --acc:#ff5a4d; --acc2:#4dd0e1;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  a{color:inherit}
+  header{position:sticky;top:0;z-index:20;background:rgba(14,15,19,.95);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:14px 18px}
+  .htop{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  h1{font-size:20px;font-weight:800;letter-spacing:-.5px}
+  h1 span{color:var(--acc)}
+  .meta{color:var(--dim);font-size:12px}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  input,select{background:var(--surf2);color:var(--txt);border:1px solid var(--line);
+    border-radius:8px;padding:8px 10px;font-size:14px}
+  input{flex:1;min-width:180px}
+  .dates{display:flex;gap:6px;overflow-x:auto;padding:10px 18px 0;scrollbar-width:thin}
+  .chip{white-space:nowrap;background:var(--surf2);border:1px solid var(--line);
+    color:var(--dim);padding:7px 13px;border-radius:999px;cursor:pointer;font-size:13px;font-weight:600}
+  .chip.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+  main{padding:16px 18px 60px;max-width:1280px;margin:0 auto}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
+  .card{background:var(--surf);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+  .top{display:flex;gap:12px;padding:12px}
+  .poster{width:78px;height:117px;border-radius:8px;object-fit:cover;background:var(--surf2);flex-shrink:0}
+  .info{min-width:0;flex:1}
+  .ttl{font-weight:700;font-size:15px;line-height:1.25}
+  .sub{color:var(--dim);font-size:12px;margin-top:3px}
+  .badge{display:inline-block;background:var(--surf2);border:1px solid var(--line);
+    color:var(--acc2);font-size:11px;padding:1px 7px;border-radius:6px;margin:4px 4px 0 0}
+  .cines{border-top:1px solid var(--line);padding:10px 12px;display:flex;flex-direction:column;gap:9px}
+  .cine{font-size:13px}
+  .cn{font-weight:600;display:flex;justify-content:space-between;gap:8px}
+  .cn small{color:var(--dim);font-weight:400}
+  .times{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+  .t{background:var(--surf2);border:1px solid var(--line);border-radius:6px;
+    padding:3px 8px;font-size:12px;font-variant-numeric:tabular-nums;text-decoration:none}
+  .t:hover{background:var(--acc);border-color:var(--acc);color:#fff}
+  .t i{font-style:normal;color:var(--dim);font-size:10px;margin-left:4px}
+  .empty{color:var(--dim);text-align:center;padding:60px 0}
+  footer{color:var(--dim);font-size:12px;text-align:center;padding:24px}
+</style>
+</head>
+<body>
+<header>
+  <div class="htop">
+    <h1>Cartelera <span>CABA</span></h1>
+    <span class="meta" id="meta">cargando…</span>
+  </div>
+  <div class="controls">
+    <input id="q" placeholder="Buscar película…" autocomplete="off">
+    <select id="chain"><option value="">Todas las cadenas</option></select>
+    <select id="cine"><option value="">Todos los cines</option></select>
+  </div>
+</header>
+<div class="dates" id="dates"></div>
+<main><div class="grid" id="grid"></div><div class="empty" id="empty" hidden>Sin funciones para ese filtro.</div></main>
+<footer>Datos: cartelera.ar + curaduría de centros culturales · se actualiza por cron diario · <span id="gen"></span></footer>
+
+<script>
+const S={data:null,date:null,q:"",chain:"",cine:""};
+const $=s=>document.querySelector(s);
+
+// ¿es un link "profundo" (a la peli/función) y no solo el home de la cadena?
+function isDeep(u){
+  try{const x=new URL(u);return (x.pathname.replace(/\/+$/,"").length>0)||!!x.search;}
+  catch(e){return false;}
+}
+// adónde lleva clickear un horario:
+// 1) link de compra real (deep)  2) web oficial del cine  3) cartelera.ar del cine
+function showLink(f,c){
+  if(f.buy_url&&isDeep(f.buy_url)) return f.buy_url;
+  return c.official_url || c.cartelera_url || f.buy_url || "#";
+}
+
+// funciona en web/ (local: ../data) y en docs/ (Pages: ./data)
+(async()=>{
+  for(const p of ["./data/cartelera.json","../data/cartelera.json"]){
+    try{const r=await fetch(p);if(r.ok){S.data=await r.json();return init();}}catch(e){}
+  }
+  $("#meta").textContent="No pude cargar data/cartelera.json (corré el scraper).";
+})();
+
+function init(){
+  const d=S.data;
+  const dates=[...new Set(d.functions.map(f=>f.date))].sort();
+  S.date=dates.find(x=>x>=new Date().toISOString().slice(0,10))||dates[0];
+  $("#dates").innerHTML=dates.map(x=>`<div class="chip" data-d="${x}">${fmtDate(x)}</div>`).join("");
+  $("#dates").onclick=e=>{const c=e.target.closest("[data-d]");if(c){S.date=c.dataset.d;render();}};
+
+  const chains=[...new Set(Object.values(d.cinemas).map(c=>c.chain).filter(Boolean))].sort();
+  $("#chain").innerHTML+=chains.map(c=>`<option>${c}</option>`).join("");
+  const cines=Object.values(d.cinemas).sort((a,b)=>a.name.localeCompare(b.name));
+  $("#cine").innerHTML+=cines.map(c=>`<option value="${c.slug}">${c.name}</option>`).join("");
+
+  $("#q").oninput=e=>{S.q=e.target.value.toLowerCase();render();};
+  $("#chain").onchange=e=>{S.chain=e.target.value;render();};
+  $("#cine").onchange=e=>{S.cine=e.target.value;render();};
+
+  const gen=new Date(d.generated_at);
+  $("#gen").textContent="actualizado "+gen.toLocaleString("es-AR");
+  render();
+}
+
+function fmtDate(s){
+  const [y,m,da]=s.split("-").map(Number);
+  const dt=new Date(y,m-1,da);
+  const t=new Date().toISOString().slice(0,10);
+  if(s===t)return "Hoy";
+  const dd=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"][dt.getDay()];
+  return `${dd} ${da}/${m}`;
+}
+
+function render(){
+  const d=S.data, grid=$("#grid");
+  let funcs=d.functions.filter(f=>f.date===S.date);
+  if(S.chain) funcs=funcs.filter(f=>(d.cinemas[f.cinema]||{}).chain===S.chain);
+  if(S.cine)  funcs=funcs.filter(f=>f.cinema===S.cine);
+
+  const byMovie={};
+  funcs.forEach(f=>{(byMovie[f.movie]=byMovie[f.movie]||[]).push(f);});
+  let movies=Object.keys(byMovie).map(slug=>d.movies[slug]).filter(Boolean);
+  if(S.q) movies=movies.filter(m=>(m.title||"").toLowerCase().includes(S.q)
+        ||(m.alt_title||"").toLowerCase().includes(S.q));
+  movies.sort((a,b)=>(a.title||"").localeCompare(b.title||""));
+
+  $("#meta").textContent=`${movies.length} pelis · ${funcs.length} funciones · ${Object.keys(d.cinemas).length} cines`;
+  $("#empty").hidden=movies.length>0;
+
+  grid.innerHTML=movies.map(m=>{
+    const fs=byMovie[m.slug];
+    const byCine={};
+    fs.forEach(f=>{(byCine[f.cinema]=byCine[f.cinema]||[]).push(f);});
+    const cinesHtml=Object.keys(byCine).sort().map(cs=>{
+      const c=d.cinemas[cs]||{slug:cs,name:cs};
+      const ts=byCine[cs].sort((a,b)=>a.time.localeCompare(b.time)).map(f=>{
+        const tag=[f.format,(f.version||"").slice(0,4)].filter(x=>x&&x!=="2D").join(" ");
+        const u=showLink(f,c);
+        return `<a class="t" href="${u}" target="_blank" rel="noopener" title="Ir a ${c.name}">${f.time}${tag?`<i>${tag}</i>`:""}</a>`;
+      }).join("");
+      const clink=c.official_url||c.cartelera_url||"#";
+      return `<div class="cine"><div class="cn">
+        <a href="${clink}" target="_blank" rel="noopener">${c.name} ↗</a>
+        <small>${c.chain||""}${c.locality?" · "+c.locality:""}</small></div>
+        <div class="times">${ts}</div></div>`;
+    }).join("");
+    const dur=m.duration_min?`${m.duration_min}′`:"";
+    const gen=(m.genres||[]).slice(0,2).join(" · ");
+    const rt=m.rating?`★ ${m.rating}`:"";
+    const poster=m.poster||"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='78' height='117'/%3E";
+    return `<div class="card">
+      <div class="top">
+        <img class="poster" loading="lazy" src="${poster}" alt="">
+        <div class="info">
+          <div class="ttl">${m.cartelera_url?`<a href="${m.cartelera_url}" target="_blank" rel="noopener">${m.title||m.slug}</a>`:(m.title||m.slug)}</div>
+          <div class="sub">${[gen,dur,rt].filter(Boolean).join(" · ")}</div>
+          ${m.director?`<div class="sub">Dir: ${m.director}</div>`:""}
+          ${(m.genres||[]).includes("Ciclo")?'<span class="badge">Ciclo</span>':""}
+        </div>
+      </div>
+      <div class="cines">${cinesHtml}</div>
+    </div>`;
+  }).join("");
+
+  [...$("#dates").children].forEach(c=>c.classList.toggle("on",c.dataset.d===S.date));
+}
+</script>
+</body>
+</html>

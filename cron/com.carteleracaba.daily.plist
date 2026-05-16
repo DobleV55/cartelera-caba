@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- launchd (macOS) — corre el scraper todos los dias 08:05 y 15:05.
+     Instalar:
+       cp cron/com.carteleracaba.daily.plist ~/Library/LaunchAgents/
+       launchctl load  ~/Library/LaunchAgents/com.carteleracaba.daily.plist
+     Desinstalar:
+       launchctl unload ~/Library/LaunchAgents/com.carteleracaba.daily.plist
+     (Ajustá las rutas si moves el proyecto.) -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.carteleracaba.daily</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/valenvila/cartelera-caba/cron/run.sh</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>5</integer></dict>
+    <dict><key>Hour</key><integer>15</integer><key>Minute</key><integer>5</integer></dict>
+  </array>
+  <key>StandardOutPath</key>
+  <string>/Users/valenvila/cartelera-caba/data/launchd.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/valenvila/cartelera-caba/data/launchd.err.log</string>
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>
