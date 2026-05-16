@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-05-16T21:04:43.248034+00:00",
+ "generated_at": "2026-05-16T22:22:54.706442+00:00",
  "sources": [
   "cartelera.ar",
   "extras"
@@ -367,6 +367,21 @@
    "cartelera_url": "https://cartelera.ar/cine/showcase-belgrano",
    "url": "https://www.todoshowcase.com/cines/belgrano",
    "source_url": "https://cartelera.ar/cine/showcase-belgrano"
+  },
+  "yunta-bar": {
+   "slug": "yunta-bar",
+   "name": "Yunta Bar (Comunidad Cinéfila)",
+   "chain": "Bar-cine",
+   "street": "Lavalle 3491",
+   "locality": "Almagro",
+   "region": "CABA",
+   "phone": null,
+   "lat": -34.6033,
+   "lng": -58.4181,
+   "official_url": "https://www.comunidadcinefila.org/comunidadcinefilaenyunta",
+   "cartelera_url": "https://www.comunidadcinefila.org/comunidadcinefilaenyunta",
+   "url": "https://www.comunidadcinefila.org/comunidadcinefilaenyunta",
+   "source_url": "https://www.comunidadcinefila.org/comunidadcinefilaenyunta"
   }
  },
  "movies": {
@@ -502,6 +517,19 @@
    "is_special": true,
    "_cinemas": [
     "palacio-libertad"
+   ]
+  },
+  "yunta-comunidad-cinefila": {
+   "slug": "yunta-comunidad-cinefila",
+   "title": "Comunidad Cinéfila en Yunta — consultar fecha",
+   "description": "Yunta Bar (bar de Radio Futurock, Lavalle 3491, Almagro). Ciclo de cine argentino reciente con charla entre espectadores y directores/elenco. Funciones por evento (en sala los meses fríos, en terraza en primavera). FECHA Y PELÍCULA SE CONFIRMAN POR EVENTO: reservar en comunidadcinefila.org o IG @comunidadcinefila — entrada con reserva.",
+   "genres": [
+    "Bar-cine",
+    "Ciclo"
+   ],
+   "is_special": true,
+   "_cinemas": [
+    "yunta-bar"
    ]
   },
   "cuatro-estrellas": {
@@ -7255,6 +7283,16 @@
    "format": "Ciclo",
    "version": "",
    "buy_url": "https://casadelbicentenario.cultura.gob.ar/actividades/"
+  },
+  {
+   "movie": "yunta-comunidad-cinefila",
+   "cinema": "yunta-bar",
+   "start": "2026-05-22T20:00:00-03:00",
+   "date": "2026-05-22",
+   "time": "20:00",
+   "format": "Bar-cine",
+   "version": "",
+   "buy_url": "https://www.comunidadcinefila.org/comunidadcinefilaenyunta"
   },
   {
    "movie": "borges-karnawal",
