@@ -228,6 +228,7 @@ def scrape_cinema(slug: str, *, caba_only: bool = True) -> dict | None:
                 "format": item.get("videoFormat") or "2D",
                 "version": _version(item),
                 "buy_url": offers.get("url") if isinstance(offers, dict) else None,
+                "source": "cartelera.ar",
             }
         )
 

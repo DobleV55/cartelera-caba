@@ -24,7 +24,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-from carteleracaba import cartelera_ar, model  # noqa: E402
+from carteleracaba import cartelera_ar, comunidad_cinefila, model  # noqa: E402
 from carteleracaba.extras import load_extras  # noqa: E402
 
 DATA_DIR = os.path.join(HERE, "data")
@@ -63,6 +63,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Scraper de cartelera de cine CABA")
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--no-extras", action="store_true")
+    ap.add_argument("--no-cc", action="store_true",
+                    help="no scrapear Comunidad Cinéfila")
     ap.add_argument("--full", action="store_true", help="no podar funciones pasadas")
     ap.add_argument("--only", default="", help="slugs separados por coma")
     ap.add_argument("--out", default=STORE_PATH)
@@ -100,6 +102,19 @@ def main() -> int:
             )
 
     _log(f"procesados {ok}/{len(slugs)} · CABA con funciones: {caba}")
+
+    if not args.no_cc:
+        try:
+            cc = comunidad_cinefila.scrape(
+                on_progress=lambda s, okk, info: _log(
+                    f"  {'✓' if okk else '·'} [CC] {s}: {info}"
+                )
+            )
+            n = sum(len(r["functions"]) for r in cc)
+            _log(f"Comunidad Cinéfila: {len(cc)} sedes, {n} funciones futuras")
+            results += cc
+        except Exception as exc:
+            _log(f"Comunidad Cinéfila falló (se ignora): {exc}")
 
     extras = None if args.no_extras else load_extras()
     if extras:

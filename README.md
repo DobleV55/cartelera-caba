@@ -14,12 +14,20 @@ Pensado para correr por **cron diario** y servir una **página web**.
      director, rating, tráiler. **Una sola vez** (dedup por slug).
    - **Funciones**: fecha, hora, formato (2D/3D/4DX/XD), versión
      (Subtitulada/Doblada), link de compra.
-4. Suma **centros culturales / ciclos** curados a mano (`data/extras.json`):
+4. Scrapea **Comunidad Cinéfila** (`comunidadcinefila.org`, sitio Wix Events):
+   lee `event-pages-sitemap.xml` y el JSON-LD `@type Event` de cada
+   `/event-details/<slug>`. Detecta **automáticamente** funciones futuras
+   en CABA (Yunta Bar / sedes itinerantes) sin reverse-engineering de la
+   API privada de Wix. Solo muestra eventos **publicados y futuros**.
+5. Suma **centros culturales / ciclos** curados a mano (`data/extras.json`):
    Palacio Libertad (exCCK), Biblioteca del Congreso, Biblioteca Nacional,
    Centro Cultural Borges, Casa del Bicentenario, Club Lucero.
-5. **Acumula y deduplica** en `data/cartelera.json` (cada corrida hace merge con
-   lo previo y poda funciones de fechas pasadas → ventana móvil).
-6. Exporta también `data/cartelera.csv`.
+6. **Acumula y deduplica** en `data/cartelera.json`. Cada función lleva
+   `source`: las de `cartelera.ar` se **acumulan hacia adelante** (esa
+   fuente solo publica hoy/mañana); las de `extras` y `comunidad-cinefila`
+   son **snapshots autoritativos** que se regeneran enteros cada run (si
+   una entrada se borra de la fuente, desaparece). Poda fechas pasadas.
+7. Exporta también `data/cartelera.csv`.
 
 Cobertura CABA real hoy: Cinemark/Hoyts (Palermo, Caballito, Puerto Madero,
 Abasto, Dot Baires), Cinépolis (Recoleta, Houssay), Atlas (Caballito, Flores,

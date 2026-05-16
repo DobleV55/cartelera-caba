@@ -59,6 +59,7 @@ def build_store(results: list[dict], extras: dict | None = None) -> dict:
         for m in extras.get("movies", []):
             movies[m["slug"]] = _merge_movie(movies.get(m["slug"], {}), m)
         for f in extras.get("functions", []):
+            f.setdefault("source", "extras")
             funcs[_func_key(f)] = f
 
     # backref: en que cines esta cada peli
@@ -100,7 +101,16 @@ def merge_with_previous(new: dict, prev: dict | None, *, prune_past: bool = True
         for slug, m in new["movies"].items():
             movies[slug] = _merge_movie(movies.get(slug, {}), m)
         funcs: dict[tuple, dict] = {}
-        for f in prev.get("functions", []) + new["functions"]:
+        # del store previo solo se acumulan funciones de cartelera.ar
+        # (esa fuente solo publica hoy/mañana, hay que acumular hacia
+        # adelante). extras y comunidad-cinefila son snapshots
+        # autoritativos: se regeneran enteros cada run, asi que si una
+        # entrada se borra de la fuente, desaparece.
+        prev_roll = [
+            f for f in prev.get("functions", [])
+            if f.get("source", "cartelera.ar") == "cartelera.ar"
+        ]
+        for f in prev_roll + new["functions"]:
             funcs[_func_key(f)] = f
         merged = {
             "generated_at": new["generated_at"],
