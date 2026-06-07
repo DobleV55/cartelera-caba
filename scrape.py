@@ -24,7 +24,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-from carteleracaba import cartelera_ar, cinemark, comunidad_cinefila, model  # noqa: E402
+from carteleracaba import (  # noqa: E402
+    cartelera_ar, cinemark, comunidad_cinefila, model, palacio_libertad,
+)
 from carteleracaba.extras import load_extras  # noqa: E402
 
 DATA_DIR = os.path.join(HERE, "data")
@@ -67,6 +69,8 @@ def main() -> int:
                     help="no scrapear Comunidad Cinéfila")
     ap.add_argument("--no-cinemark", action="store_true",
                     help="no usar el BFF de Cinemark Hoyts (semana completa)")
+    ap.add_argument("--no-palacio", action="store_true",
+                    help="no scrapear cine de Palacio Libertad (exCCK)")
     ap.add_argument("--full", action="store_true", help="no podar funciones pasadas")
     ap.add_argument("--only", default="", help="slugs separados por coma")
     ap.add_argument("--out", default=STORE_PATH)
@@ -135,6 +139,20 @@ def main() -> int:
             results += cm
         except Exception as exc:
             _log(f"Cinemark Hoyts falló (se ignora): {exc}")
+
+    if not args.no_palacio:
+        try:
+            pl = palacio_libertad.scrape(
+                workers=args.workers,
+                on_progress=lambda s, okk, info: _log(
+                    f"  {'✓' if okk else '·'} [PL] {s}: {info}"
+                ),
+            )
+            n = sum(len(r["functions"]) for r in pl)
+            _log(f"Palacio Libertad (MEC): {len(pl)} sede, {n} funciones (cine)")
+            results += pl
+        except Exception as exc:
+            _log(f"Palacio Libertad falló (se ignora): {exc}")
 
     extras = None if args.no_extras else load_extras()
     if extras:

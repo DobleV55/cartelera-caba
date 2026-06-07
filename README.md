@@ -25,18 +25,23 @@ Pensado para correr por **cron diario** y servir una **página web**.
    `/event-details/<slug>`. Detecta **automáticamente** funciones futuras
    en CABA (Yunta Bar / sedes itinerantes) sin reverse-engineering de la
    API privada de Wix. Solo muestra eventos **publicados y futuros**.
-6. Suma **centros culturales / ciclos** curados a mano (`data/extras.json`):
-   Palacio Libertad (exCCK), Biblioteca del Congreso, Biblioteca Nacional,
+6. Scrapea el **cine de Palacio Libertad (exCCK)** desde su Modern Events
+   Calendar (`wp-json/wp/v2/mec-events`, categoría Cine): de cada ciclo lee
+   el JSON-LD `@type Event` (sala, rango de fechas) y parsea el bloque
+   "Agenda" del cuerpo (día + hora + título de cada película). Solo eventos
+   futuros. Se desactiva con `--no-palacio`.
+7. Suma **otros centros culturales / ciclos** curados a mano
+   (`data/extras.json`): Biblioteca del Congreso, Biblioteca Nacional,
    Centro Cultural Borges, Casa del Bicentenario, Club Lucero.
-7. **Acumula y deduplica** en `data/cartelera.json`. Cada función lleva
+8. **Acumula y deduplica** en `data/cartelera.json`. Cada función lleva
    `source`: las de `cartelera.ar` se **acumulan hacia adelante** (esa
-   fuente solo publica hoy); las de `cinemark`, `extras` y
-   `comunidad-cinefila` son **snapshots autoritativos** que se regeneran
-   enteros cada run (si una entrada se borra de la fuente, desaparece).
-   Las películas se **deduplican entre fuentes por título normalizado**
-   (slug canónico), así una misma peli en Atlas y en Cinemark es una sola
-   tarjeta. Poda fechas pasadas.
-8. Exporta también `data/cartelera.csv`.
+   fuente solo publica hoy); las de `cinemark`, `palacio-libertad`,
+   `extras` y `comunidad-cinefila` son **snapshots autoritativos** que se
+   regeneran enteros cada run (si una entrada se borra de la fuente,
+   desaparece). Las películas se **deduplican entre fuentes por título
+   normalizado** (slug canónico), así una misma peli en Atlas y en
+   Cinemark es una sola tarjeta. Poda fechas pasadas.
+9. Exporta también `data/cartelera.csv`.
 
 Cobertura CABA real hoy: Cinemark/Hoyts (Palermo, Caballito, Puerto Madero,
 Abasto, Dot Baires), Cinépolis (Recoleta, Houssay), Atlas (Caballito, Flores,
