@@ -24,7 +24,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-from carteleracaba import cartelera_ar, comunidad_cinefila, model  # noqa: E402
+from carteleracaba import cartelera_ar, cinemark, comunidad_cinefila, model  # noqa: E402
 from carteleracaba.extras import load_extras  # noqa: E402
 
 DATA_DIR = os.path.join(HERE, "data")
@@ -65,6 +65,8 @@ def main() -> int:
     ap.add_argument("--no-extras", action="store_true")
     ap.add_argument("--no-cc", action="store_true",
                     help="no scrapear Comunidad Cinéfila")
+    ap.add_argument("--no-cinemark", action="store_true",
+                    help="no usar el BFF de Cinemark Hoyts (semana completa)")
     ap.add_argument("--full", action="store_true", help="no podar funciones pasadas")
     ap.add_argument("--only", default="", help="slugs separados por coma")
     ap.add_argument("--out", default=STORE_PATH)
@@ -78,6 +80,10 @@ def main() -> int:
         _log("descubriendo cines en cartelera.ar/cines ...")
         slugs = cartelera_ar.discover_cinema_slugs()
         _log(f"{len(slugs)} cines en el indice (todo el pais)")
+        if not args.no_cinemark:
+            # los 5 Cinemark/Hoyts CABA salen del BFF (semana completa);
+            # se excluyen de cartelera.ar para no duplicar funciones de hoy.
+            slugs = [s for s in slugs if s not in cinemark.COVERS_SLUGS]
 
     results: list[dict] = []
     ok = caba = 0
@@ -115,6 +121,20 @@ def main() -> int:
             results += cc
         except Exception as exc:
             _log(f"Comunidad Cinéfila falló (se ignora): {exc}")
+
+    if not args.no_cinemark:
+        try:
+            cm = cinemark.scrape_all(
+                workers=args.workers,
+                on_progress=lambda s, okk, info: _log(
+                    f"  {'✓' if okk else '·'} [CMH] {s}: {info}"
+                ),
+            )
+            n = sum(len(r["functions"]) for r in cm)
+            _log(f"Cinemark Hoyts (BFF): {len(cm)} cines, {n} funciones (semana)")
+            results += cm
+        except Exception as exc:
+            _log(f"Cinemark Hoyts falló (se ignora): {exc}")
 
     extras = None if args.no_extras else load_extras()
     if extras:

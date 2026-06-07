@@ -30,11 +30,14 @@ def get(
     retries: int = 3,
     backoff: float = 2.0,
     insecure: bool = False,
+    headers: dict | None = None,
 ) -> str:
     """GET con reintentos. Devuelve el body como texto utf-8.
 
     insecure=True desactiva verificación TLS (algunos cines tienen
     el certificado vencido, p.ej. cinegaumont.ar).
+    headers: cabeceras extra (p.ej. {"country": "AR"} para el BFF de
+    Cinemark); se mergean sobre las default.
     """
     ctx = None
     if insecure:
@@ -42,17 +45,18 @@ def get(
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
 
+    base_headers = {
+        "User-Agent": _UA,
+        "Accept": "text/html,application/xhtml+xml,application/json,*/*",
+        "Accept-Language": "es-AR,es;q=0.9",
+        "Accept-Encoding": "gzip",
+    }
+    if headers:
+        base_headers.update(headers)
+
     last_err: Exception | None = None
     for attempt in range(1, retries + 1):
-        req = urllib.request.Request(
-            url,
-            headers={
-                "User-Agent": _UA,
-                "Accept": "text/html,application/xhtml+xml,application/json,*/*",
-                "Accept-Language": "es-AR,es;q=0.9",
-                "Accept-Encoding": "gzip",
-            },
-        )
+        req = urllib.request.Request(url, headers=base_headers)
         try:
             with urllib.request.urlopen(req, timeout=timeout, context=ctx) as resp:
                 raw = resp.read()

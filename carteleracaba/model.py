@@ -21,9 +21,21 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import unicodedata
 from datetime import date, datetime, timezone
 
 _TZ = timezone.utc
+
+
+def canon_movie_slug(title: str | None, fallback: str | None = None) -> str:
+    """Slug canónico derivado del título, para deduplicar la misma peli
+    entre fuentes distintas (cartelera.ar usa 'lilo-stitch', Cinemark
+    'LILO & STITCH' -> ambos colapsan a 'lilo-stitch')."""
+    base = (title or fallback or "").strip()
+    base = unicodedata.normalize("NFKD", base).encode("ascii", "ignore").decode()
+    base = re.sub(r"[^a-z0-9]+", "-", base.lower()).strip("-")
+    return base or (fallback or "")
 
 
 def _func_key(f: dict) -> tuple:
@@ -40,6 +52,16 @@ def _merge_movie(dst: dict, src: dict) -> dict:
     return out
 
 
+def _add_movie(movies: dict, m: dict, src_slug: str) -> str:
+    """Agrega/mergea una peli bajo su slug canónico (por título). Devuelve
+    el slug canónico para poder remapear las funciones que la referencian."""
+    canon = canon_movie_slug(m.get("title"), src_slug)
+    mm = dict(m)
+    mm["slug"] = canon
+    movies[canon] = _merge_movie(movies.get(canon, {}), mm)
+    return canon
+
+
 def build_store(results: list[dict], extras: dict | None = None) -> dict:
     cinemas: dict[str, dict] = {}
     movies: dict[str, dict] = {}
@@ -48,18 +70,21 @@ def build_store(results: list[dict], extras: dict | None = None) -> dict:
     for res in results:
         c = res["cinema"]
         cinemas[c["slug"]] = c
-        for mslug, m in res["movies"].items():
-            movies[mslug] = _merge_movie(movies.get(mslug, {}), m)
+        remap = {old: _add_movie(movies, m, old) for old, m in res["movies"].items()}
         for f in res["functions"]:
+            f = dict(f)
+            f["movie"] = remap.get(f["movie"], f["movie"])
             funcs[_func_key(f)] = f
 
     if extras:
         for c in extras.get("cinemas", []):
             cinemas.setdefault(c["slug"], c)
-        for m in extras.get("movies", []):
-            movies[m["slug"]] = _merge_movie(movies.get(m["slug"], {}), m)
+        remap = {m["slug"]: _add_movie(movies, m, m["slug"])
+                 for m in extras.get("movies", [])}
         for f in extras.get("functions", []):
+            f = dict(f)
             f.setdefault("source", "extras")
+            f["movie"] = remap.get(f["movie"], f["movie"])
             funcs[_func_key(f)] = f
 
     # backref: en que cines esta cada peli
@@ -72,7 +97,7 @@ def build_store(results: list[dict], extras: dict | None = None) -> dict:
 
     return {
         "generated_at": datetime.now(_TZ).isoformat(),
-        "sources": ["cartelera.ar"] + (["extras"] if extras else []),
+        "sources": sorted({f.get("source", "cartelera.ar") for f in funcs.values()}),
         "cinemas": dict(sorted(cinemas.items())),
         "movies": dict(sorted(movies.items(), key=lambda kv: (kv[1].get("title") or kv[0]))),
         "functions": sorted(
